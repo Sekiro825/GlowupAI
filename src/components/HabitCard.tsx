@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/tokens';
 import { PrimaryButton } from './PrimaryButton';
 import { StreakCounter } from './StreakCounter';
@@ -26,21 +26,17 @@ export const HabitCard: React.FC<HabitCardProps> = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // Mount animation: fade + slide-up
   useEffect(() => {
-    Animated.parallel([
+    if (completed) {
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 500,
         useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, scaleAnim]);
+      }).start();
+    } else {
+      fadeAnim.setValue(0);
+    }
+  }, [completed, fadeAnim]);
 
   const handlePress = () => {
     // Scale animation on press
@@ -61,7 +57,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({
   };
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}> 
+    <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}> 
       <View style={styles.header}>
         <View style={styles.emojiContainer}>
           <Text style={styles.emoji}>{emoji}</Text>
