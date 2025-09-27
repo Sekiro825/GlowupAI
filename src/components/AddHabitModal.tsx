@@ -122,7 +122,7 @@ export function AddHabitModal({ visible, onClose, onAddHabit, loading = false }:
             style={styles.cancelButton}
           />
           <PrimaryButton
-            title="Add Habit"
+            title={loading ? 'Adding…' : 'Add Habit'}
             onPress={handleSubmit}
             loading={loading}
             style={styles.addButton}

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Pressable } from 'react-native';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/tokens';
 import { PrimaryButton } from './PrimaryButton';
 import { StreakCounter } from './StreakCounter';

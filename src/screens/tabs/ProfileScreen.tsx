@@ -6,12 +6,13 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { GlassCard } from '../../components/GlassCard';
 import { StreakCounter } from '../../components/StreakCounter';
 import { ProgressChart } from '../../components/ProgressChart';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { supabase, User, Habit } from '../../lib/supabase';
 import { fetchUserAnalytics, UserAnalytics } from '../../lib/analytics';
 import { handleGenerateAndSaveHabits } from './HabitsScreen';
 
 export default function ProfileScreen() {
+  const params = useLocalSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,14 @@ export default function ProfileScreen() {
   useEffect(() => {
     fetchUserData();
   }, []);
+
+  // Open goal modal if navigated with param
+  useEffect(() => {
+    const shouldOpen = params?.openGoalModal === '1' || params?.openGoalModal === 1;
+    if (shouldOpen) {
+      setGoalModalVisible(true);
+    }
+  }, [params]);
 
   // Fetch analytics when user data is loaded
   useEffect(() => {

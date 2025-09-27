@@ -296,15 +296,32 @@ function HabitsScreen() {
           {habits.length === 0 ? (
             <GlassCard style={styles.emptyStateCard}>
               <Text style={styles.emptyStateEmoji}>🌱</Text>
-              <Text style={styles.emptyStateTitle}>Start Your Journey!</Text>
+              <Text style={styles.emptyStateTitle}>Start Your Journey</Text>
               <Text style={styles.emptyStateDescription}>
-                You haven't created any habits yet. Tap the + button to add your first habit and begin your wellness journey!
+                Create your first habit or let AI build a custom plan based on your goal.
               </Text>
-              <PrimaryButton
-                title="Add Your First Habit"
-                onPress={() => setShowAddModal(true)}
-                style={styles.emptyStateButton}
-              />
+              <View style={styles.emptyCtas}>
+                <PrimaryButton
+                  title="Add Habit"
+                  onPress={() => setShowAddModal(true)}
+                  style={styles.emptyStateButton}
+                />
+                <PrimaryButton
+                  title="Get a Custom Plan"
+                  onPress={() => {
+                    try {
+                      // Navigate to Profile to open goal modal
+                      // @ts-ignore - expo-router in runtime
+                      const { router } = require('expo-router');
+                      router.push({ pathname: '/tabs/profile', params: { openGoalModal: '1' } });
+                    } catch (e) {
+                      Alert.alert('Info', 'Open Profile → Get a Custom Plan');
+                    }
+                  }}
+                  variant="outline"
+                  style={styles.emptyStateButton}
+                />
+              </View>
             </GlassCard>
           ) : (
             habits.map((habit) => (
@@ -466,6 +483,11 @@ const styles = StyleSheet.create({
   emptyStateCard: {
     alignItems: 'center',
     paddingVertical: spacing['2xl'],
+  },
+  emptyCtas: {
+    width: '100%',
+    gap: spacing.md,
+    marginTop: spacing.lg,
   },
   emptyStateEmoji: {
     fontSize: 64,
