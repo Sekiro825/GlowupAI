@@ -1,11 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, RefreshControl, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { colors, typography, spacing, shadows } from '../../theme/tokens';
+import { PrimaryButton } from '../../components/PrimaryButton';
 import { HabitCard } from '../../components/HabitCard';
 import { GlassCard } from '../../components/GlassCard';
 import { AddHabitModal } from '../../components/AddHabitModal';
-import { fetchDailyTip, DailyTip, shouldFetchNewTip, markTipAsFetched } from '../../lib/fastrouter';
+import { fetchDailyTip, DailyTip, shouldFetchNewTip, markTipAsFetched, generateHabitPlan, HabitPlanItem } from '../../lib/fastrouter';
 import { supabase, Habit } from '../../lib/supabase';
+
+// Exported utility to generate a habit plan via AI and save to Supabase for the current user.
+// Returns the number of habits successfully inserted.
+export async function handleGenerateAndSaveHabits(goal: string): Promise<number> {
+  if (!goal || !goal.trim()) {
+    throw new Error('Please provide a goal');
+  }
+
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth?.user;
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const plan: HabitPlanItem[] = await generateHabitPlan(goal.trim());
+  if (!plan || plan.length === 0) {
+    throw new Error('AI did not return any habits');
+  }
+
+  const rows = plan.map(item => ({
+    user_id: user.id,
+    title: item.title,
+    description: item.description,
+    emoji: item.emoji,
+    completed_today: false,
+    streak_count: 0,
+  }));
+
+  const { data, error } = await supabase
+    .from('habits')
+    .insert(rows)
+    .select();
+
+  if (error) {
+    throw new Error('Failed to save habits: ' + error.message);
+  }
+
+  return data?.length ?? 0;
+}
 
 function HabitsScreen() {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -24,6 +64,42 @@ function HabitsScreen() {
   useEffect(() => {
     fetchHabits();
     fetchDailyTipData();
+  }, []);
+
+  // Realtime: refresh when new habits are inserted for this user (e.g., from Profile modal)
+  useEffect(() => {
+    let channel: any;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        channel = supabase
+          // @ts-ignore - supabase-js types for channel are optional here
+          .channel('habits-insert-' + user.id)
+          .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'habits',
+            filter: `user_id=eq.${user.id}`,
+          }, () => {
+            fetchHabits();
+          })
+          .subscribe();
+      } catch (e) {
+        // noop
+      }
+    })();
+
+    return () => {
+      try {
+        if (channel) {
+          // @ts-ignore
+          supabase.removeChannel(channel);
+        }
+      } catch (e) {
+        // noop
+      }
+    };
   }, []);
 
   const fetchDailyTipData = async () => {
