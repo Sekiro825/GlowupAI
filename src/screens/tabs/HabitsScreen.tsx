@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, RefreshControl, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { colors, typography, spacing, shadows } from '../../theme/tokens';
+import { PrimaryButton } from '../../components/PrimaryButton';
 import { HabitCard } from '../../components/HabitCard';
 import { GlassCard } from '../../components/GlassCard';
 import { AddHabitModal } from '../../components/AddHabitModal';
 import { fetchDailyTip, DailyTip, shouldFetchNewTip, markTipAsFetched } from '../../lib/fastrouter';
 import { supabase, Habit } from '../../lib/supabase';
+
 
 function HabitsScreen() {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -24,6 +26,42 @@ function HabitsScreen() {
   useEffect(() => {
     fetchHabits();
     fetchDailyTipData();
+  }, []);
+
+  // Realtime: refresh when new habits are inserted for this user (e.g., from Profile modal)
+  useEffect(() => {
+    let channel: any;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        channel = supabase
+          // @ts-ignore - supabase-js types for channel are optional here
+          .channel('habits-insert-' + user.id)
+          .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'habits',
+            filter: `user_id=eq.${user.id}`,
+          }, () => {
+            fetchHabits();
+          })
+          .subscribe();
+      } catch (e) {
+        // noop
+      }
+    })();
+
+    return () => {
+      try {
+        if (channel) {
+          // @ts-ignore
+          supabase.removeChannel(channel);
+        }
+      } catch (e) {
+        // noop
+      }
+    };
   }, []);
 
   const fetchDailyTipData = async () => {
@@ -390,6 +428,11 @@ const styles = StyleSheet.create({
   emptyStateCard: {
     alignItems: 'center',
     paddingVertical: spacing['2xl'],
+  },
+  emptyCtas: {
+    width: '100%',
+    gap: spacing.md,
+    marginTop: spacing.lg,
   },
   emptyStateEmoji: {
     fontSize: 64,

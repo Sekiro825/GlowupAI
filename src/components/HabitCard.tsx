@@ -28,7 +28,6 @@ export const HabitCard: React.FC<HabitCardProps> = ({
 
   useEffect(() => {
     if (completed) {
-      // Fade in animation for completed state
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
@@ -58,7 +57,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({
   };
 
   return (
-    <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
+    <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}> 
       <View style={styles.header}>
         <View style={styles.emojiContainer}>
           <Text style={styles.emoji}>{emoji}</Text>

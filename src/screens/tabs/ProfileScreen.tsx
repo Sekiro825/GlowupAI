@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, Alert, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, Alert, TextInput, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius } from '../../theme/tokens';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -9,6 +9,7 @@ import { ProgressChart } from '../../components/ProgressChart';
 import { router } from 'expo-router';
 import { supabase, User, Habit } from '../../lib/supabase';
 import { fetchUserAnalytics, UserAnalytics } from '../../lib/analytics';
+import { generateAndSaveHabits } from '../../lib/habitPlan';
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<User | null>(null);
@@ -18,6 +19,9 @@ export default function ProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [analytics, setAnalytics] = useState<UserAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [goalModalVisible, setGoalModalVisible] = useState(false);
+  const [goalInput, setGoalInput] = useState('');
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   
   // Profile editing state
   const [displayName, setDisplayName] = useState('');
@@ -29,6 +33,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     fetchUserData();
   }, []);
+
 
   // Fetch analytics when user data is loaded
   useEffect(() => {
@@ -263,6 +268,45 @@ export default function ProfileScreen() {
         },
       ]
     );
+  };
+
+  const onOpenGoalModal = () => {
+    setGoalInput('');
+    setGoalModalVisible(true);
+  };
+
+  const onGeneratePlan = async () => {
+    if (!goalInput.trim()) {
+      Alert.alert('Goal Required', 'Please enter a goal to generate your plan.');
+      return;
+    }
+    setIsGeneratingPlan(true);
+    try {
+      const count = await generateAndSaveHabits(goalInput.trim());
+      setGoalModalVisible(false);
+      Alert.alert(
+        'Success',
+        `Added ${count} new habits to your list! 🎉`,
+        [
+          { text: 'Stay Here', style: 'cancel' },
+          {
+            text: 'View Now',
+            onPress: () => {
+              try {
+                // Assumes a Habits tab route is available via expo-router
+                router.push('/tabs/habits');
+              } catch (e) {
+                // If navigation fails, ignore and stay on Profile
+              }
+            },
+          },
+        ]
+      );
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to generate plan');
+    } finally {
+      setIsGeneratingPlan(false);
+    }
   };
 
   const totalHabits = habits.length;
@@ -572,7 +616,52 @@ export default function ProfileScreen() {
           variant="outline"
           style={styles.signOutButton}
         />
+
+        {/* Custom Plan CTA */}
+        <PrimaryButton
+          title="Get a Custom Plan"
+          onPress={onOpenGoalModal}
+          style={styles.customPlanButton}
+        />
       </ScrollView>
+
+      {/* Goal Input Modal */}
+      <Modal
+        visible={goalModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setGoalModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Describe your goal</Text>
+            <Text style={styles.modalSubtitle}>e.g., "I want to bulk up" or "Improve face structure"</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Type your goal here..."
+              placeholderTextColor={colors.text.muted}
+              value={goalInput}
+              onChangeText={setGoalInput}
+              multiline
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => setGoalModalVisible(false)}
+                disabled={isGeneratingPlan}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <PrimaryButton
+                title={isGeneratingPlan ? 'Generating…' : 'Generate Plan'}
+                onPress={onGeneratePlan}
+                loading={isGeneratingPlan}
+                style={styles.modalGenerate}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -895,6 +984,60 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     marginBottom: spacing.lg,
+  },
+  customPlanButton: {
+    marginBottom: spacing['2xl'],
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: '#00000080',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: colors.card,
+    padding: spacing.lg,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+  },
+  modalTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: '700',
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  modalSubtitle: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  modalInput: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    minHeight: 80,
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.text.muted + '30',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.lg,
+  },
+  modalCancel: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  modalCancelText: {
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.base,
+  },
+  modalGenerate: {
+    minWidth: 180,
   },
   loadingContainer: {
     flex: 1,

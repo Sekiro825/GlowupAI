@@ -8,6 +8,12 @@ export interface DailyTip {
   emoji: string;
 }
 
+export interface HabitPlanItem {
+  title: string;
+  description: string;
+  emoji: string;
+}
+
 const getApiKey = (): string => {
   const apiKey = Constants.expoConfig?.extra?.fastrouterApiKey;
   if (!apiKey || apiKey === 'YOUR_FASTROUTER_API_KEY_HERE') {
@@ -169,6 +175,100 @@ Return only the JSON object with title, description, and emoji fields.`,
     
     // Return a random fallback tip if API fails
     return getRandomFallbackTip();
+  }
+};
+
+// Generate a custom habit plan (3-5 items) for a given goal
+export const generateHabitPlan = async (goal: string): Promise<HabitPlanItem[]> => {
+  try {
+    const openai = getOpenAIClient();
+
+    const response = await openai.chat.completions.create({
+      model: 'anthropic/claude-sonnet-4-20250514',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a friendly wellness coach for Gen Z. You create short, actionable habit plans tailored to a user's goal.
+
+Return ONLY a JSON array (no markdown, no code fences, no commentary) of 3 to 5 objects. Each object MUST include exactly these fields:
+[
+  { "title": string, "description": string, "emoji": string }
+]
+
+Rules:
+- Habits must be micro-habits (5 minutes or less)
+- Be specific and encouraging
+- Use a single appropriate emoji per habit
+- Keep titles short and catchy
+- Keep descriptions to 1-2 short sentences`
+        },
+        {
+          role: 'user',
+          content: `Generate a plan of 3 to 5 micro-habits for someone with this goal: "${goal}". Return only the raw JSON array.`,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 400,
+    });
+
+    const content = response.choices?.[0]?.message?.content?.trim();
+    if (!content) {
+      throw new Error('Empty response');
+    }
+
+    // Sanitize potential code fences or extra text
+    const sanitized = content
+      .replace(/^```(json)?/i, '')
+      .replace(/```$/i, '')
+      .trim();
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(sanitized);
+    } catch (err) {
+      // Try to extract JSON array substring if model added prose
+      const match = sanitized.match(/\[([\s\S]*?)\]/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      } else {
+        throw err;
+      }
+    }
+
+    if (!Array.isArray(parsed)) {
+      throw new Error('Response is not an array');
+    }
+
+    // Normalize and validate items
+    const items: HabitPlanItem[] = parsed
+      .filter((it: any) => it && typeof it === 'object')
+      .map((it: any) => ({
+        title: String(it.title ?? '').trim().slice(0, 80),
+        description: String(it.description ?? '').trim().slice(0, 200),
+        emoji: String(it.emoji ?? '').trim().slice(0, 4),
+      }))
+      .filter((it: HabitPlanItem) => it.title && it.description && it.emoji);
+
+    // Enforce between 3 and 5 items when possible
+    if (items.length >= 3) {
+      return items.slice(0, 5);
+    }
+
+    // Fallback minimal set if AI returned fewer
+    const filler: HabitPlanItem[] = [
+      { title: 'Hydrate Now', description: 'Drink a glass of water.', emoji: '💧' },
+      { title: 'Stretch Break', description: 'Do a 2-minute stretch.', emoji: '🤸‍♀️' },
+      { title: 'Breath Reset', description: 'Take 3 deep belly breaths.', emoji: '😮‍💨' },
+    ];
+    return [...items, ...filler].slice(0, 3);
+  } catch (error) {
+    console.warn('Error generating habit plan:', error);
+    // Safe fallback plan
+    return [
+      { title: 'Hydrate Now', description: 'Drink a glass of water.', emoji: '💧' },
+      { title: 'Stretch Break', description: 'Do a 2-minute stretch.', emoji: '🤸‍♀️' },
+      { title: 'Breath Reset', description: 'Take 3 deep belly breaths.', emoji: '😮‍💨' },
+    ];
   }
 };
 
