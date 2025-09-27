@@ -283,7 +283,24 @@ export default function ProfileScreen() {
     try {
       const count = await handleGenerateAndSaveHabits(goalInput.trim());
       setGoalModalVisible(false);
-      Alert.alert('Success', `Added ${count} new habits to your list! 🎉`);
+      Alert.alert(
+        'Success',
+        `Added ${count} new habits to your list! 🎉`,
+        [
+          { text: 'Stay Here', style: 'cancel' },
+          {
+            text: 'View Now',
+            onPress: () => {
+              try {
+                // Assumes a Habits tab route is available via expo-router
+                router.push('/tabs/habits');
+              } catch (e) {
+                // If navigation fails, ignore and stay on Profile
+              }
+            },
+          },
+        ]
+      );
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to generate plan');
     } finally {
