@@ -9,7 +9,7 @@ import { ProgressChart } from '../../components/ProgressChart';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase, User, Habit } from '../../lib/supabase';
 import { fetchUserAnalytics, UserAnalytics } from '../../lib/analytics';
-import { handleGenerateAndSaveHabits } from './HabitsScreen';
+import { generateAndSaveHabits } from '../../lib/habitPlan';
 
 export default function ProfileScreen() {
   const params = useLocalSearchParams();
@@ -290,7 +290,7 @@ export default function ProfileScreen() {
     }
     setIsGeneratingPlan(true);
     try {
-      const count = await handleGenerateAndSaveHabits(goalInput.trim());
+      const count = await generateAndSaveHabits(goalInput.trim());
       setGoalModalVisible(false);
       Alert.alert(
         'Success',
