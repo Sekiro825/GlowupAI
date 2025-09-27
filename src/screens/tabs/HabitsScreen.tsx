@@ -8,7 +8,6 @@ import { AddHabitModal } from '../../components/AddHabitModal';
 import { fetchDailyTip, DailyTip, shouldFetchNewTip, markTipAsFetched } from '../../lib/fastrouter';
 import { supabase, Habit } from '../../lib/supabase';
 import { generateAndSaveHabits } from '../../lib/habitPlan';
-import { Skeleton, SkeletonBlock } from '../../components/Skeleton';
 
 
 function HabitsScreen() {
@@ -196,22 +195,8 @@ function HabitsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xl }}>
-          <Skeleton height={28} width={180} borderRadiusOverride={8} style={{ marginBottom: spacing.lg }} />
-          <GlassCard style={{ marginBottom: spacing.xl }}>
-            <Skeleton height={18} width={140} style={{ marginBottom: spacing.md }} />
-            <SkeletonBlock lines={3} />
-          </GlassCard>
-          <GlassCard style={{ marginBottom: spacing.md }}>
-            <Skeleton height={22} width={'60%'} style={{ marginBottom: spacing.sm }} />
-            <Skeleton height={14} width={'90%'} style={{ marginBottom: spacing.xs }} />
-            <Skeleton height={14} width={'85%'} />
-          </GlassCard>
-          <GlassCard>
-            <Skeleton height={22} width={'50%'} style={{ marginBottom: spacing.sm }} />
-            <Skeleton height={14} width={'92%'} style={{ marginBottom: spacing.xs }} />
-            <Skeleton height={14} width={'70%'} />
-          </GlassCard>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading your habits...</Text>
         </View>
       </SafeAreaView>
     );
@@ -274,32 +259,15 @@ function HabitsScreen() {
           {habits.length === 0 ? (
             <GlassCard style={styles.emptyStateCard}>
               <Text style={styles.emptyStateEmoji}>🌱</Text>
-              <Text style={styles.emptyStateTitle}>Start Your Journey</Text>
+              <Text style={styles.emptyStateTitle}>Start Your Journey!</Text>
               <Text style={styles.emptyStateDescription}>
-                Create your first habit or let AI build a custom plan based on your goal.
+                You haven't created any habits yet. Tap the + button to add your first habit and begin your wellness journey!
               </Text>
-              <View style={styles.emptyCtas}>
-                <PrimaryButton
-                  title="Add Habit"
-                  onPress={() => setShowAddModal(true)}
-                  style={styles.emptyStateButton}
-                />
-                <PrimaryButton
-                  title="Get a Custom Plan"
-                  onPress={() => {
-                    try {
-                      // Navigate to Profile to open goal modal
-                      // @ts-ignore - expo-router in runtime
-                      const { router } = require('expo-router');
-                      router.push({ pathname: '/tabs/profile', params: { openGoalModal: '1' } });
-                    } catch (e) {
-                      Alert.alert('Info', 'Open Profile → Get a Custom Plan');
-                    }
-                  }}
-                  variant="outline"
-                  style={styles.emptyStateButton}
-                />
-              </View>
+              <PrimaryButton
+                title="Add Your First Habit"
+                onPress={() => setShowAddModal(true)}
+                style={styles.emptyStateButton}
+              />
             </GlassCard>
           ) : (
             habits.map((habit) => (
