@@ -33,6 +33,23 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     }).start();
   };
 
+  const handleHapticAndPress = () => {
+    if (isDisabled) {
+      return;
+    }
+    try {
+      // Lazy require to avoid issues if haptics is unavailable in env
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Haptics = require('expo-haptics');
+      if (Haptics && Haptics.impactAsync) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {
+      // no-op if haptics not available
+    }
+    onPress();
+  };
+
   const handlePressOut = () => {
     Animated.spring(scale, {
       toValue: 1,
@@ -46,7 +63,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       <Animated.View style={{ transform: [{ scale }] }}>
         <Pressable
           style={[styles.container, style]}
-          onPress={onPress}
+          onPress={handleHapticAndPress}
           disabled={isDisabled}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
@@ -81,7 +98,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
           isDisabled && styles.disabled,
           style,
         ]}
-        onPress={onPress}
+        onPress={handleHapticAndPress}
         disabled={isDisabled}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}

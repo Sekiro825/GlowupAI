@@ -26,18 +26,21 @@ export const HabitCard: React.FC<HabitCardProps> = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  // Mount animation: fade + slide-up
   useEffect(() => {
-    if (completed) {
-      // Fade in animation for completed state
+    Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 300,
         useNativeDriver: true,
-      }).start();
-    } else {
-      fadeAnim.setValue(0);
-    }
-  }, [completed, fadeAnim]);
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, scaleAnim]);
 
   const handlePress = () => {
     // Scale animation on press
@@ -58,7 +61,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({
   };
 
   return (
-    <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}> 
       <View style={styles.header}>
         <View style={styles.emojiContainer}>
           <Text style={styles.emoji}>{emoji}</Text>
