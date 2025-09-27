@@ -7,7 +7,6 @@ import { GlassCard } from '../../components/GlassCard';
 import { AddHabitModal } from '../../components/AddHabitModal';
 import { fetchDailyTip, DailyTip, shouldFetchNewTip, markTipAsFetched } from '../../lib/fastrouter';
 import { supabase, Habit } from '../../lib/supabase';
-// import { generateAndSaveHabits } from '../../lib/habitPlan';
 
 
 function HabitsScreen() {
